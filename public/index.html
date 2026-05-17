@@ -1,174 +1,774 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CNS Quantum VPN - SECURITY ACTIVE</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <style>
-    :root {
-      --bg:       #f9f7f2;
-      --surface:  #ffffff;
-      --surface2: #fefdfb;
-      --border:   #e8e1da;
-      --accent:   #d35400;
-      --accent-h: #ba4a00;
-      --accent-soft: rgba(211,84,0,.08);
-      --text:     #2c3e50;
-      --muted:    #7f8c8d;
-      --green:    #27ae60;
-      --red:      #c0392b;
-      --radius:   14px;
-      --shadow:   0 4px 20px rgba(0,0,0,.04);
-    }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; overflow-x: hidden; }
-    .sidebar { width: 80px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; padding: 24px 0; gap: 12px; position: fixed; top: 0; left: 0; bottom: 0; z-index: 100; }
-    .sidebar .logo { width: 48px; height: 48px; background: var(--text); border-radius: 14px; display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 1.2rem; margin-bottom: 30px; }
-    .sidebar .nav-icon { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; color: var(--muted); cursor: pointer; transition: all .2s; }
-    .sidebar .nav-icon:hover, .sidebar .nav-icon.active { background: var(--accent-soft); color: var(--accent); }
-    .sidebar .nav-icon svg { width: 22px; height: 22px; stroke-width: 2.25; }
-    .sidebar .spacer { flex: 1; }
-    .main { margin-left: 80px; flex: 1; display: flex; flex-direction: column; min-width: 0; }
-    .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 40px; height: 72px; display: flex; align-items: center; gap: 20px; position: sticky; top: 0; z-index: 90; }
-    .topbar .brand { font-size: 1.1rem; font-weight: 700; letter-spacing: -0.02em; }
-    .topbar .brand span { color: var(--muted); font-weight: 400; font-size: .85rem; display: block; margin-top: -2px; }
-    .topbar .spacer { flex: 1; }
-    .status-pill { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1.5px solid var(--border); border-radius: 99px; padding: 8px 18px; font-size: .85rem; font-weight: 600; color: var(--text); }
-    .status-pill .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 3px rgba(39,174,96,.15); }
-    .content { padding: 40px; max-width: 1200px; margin: 0 auto; width: 100%; }
-    .welcome { background: linear-gradient(135deg, var(--accent), var(--accent-h)); border-radius: 20px; padding: 30px 40px; color: #fff; display: flex; align-items: center; gap: 24px; margin-bottom: 32px; box-shadow: 0 10px 30px rgba(211,84,0,.15); }
-    .welcome .icon-wrap { width: 64px; height: 64px; background: rgba(255,255,255,.15); border-radius: 18px; display: grid; place-items: center; }
-    .welcome .icon-wrap svg { width: 32px; height: 32px; stroke-width: 2.5; }
-    .welcome h2 { font-size: 1.35rem; font-weight: 700; }
-    .welcome p { font-size: .95rem; opacity: .9; margin-top: 4px; }
-    .welcome .tag { margin-left: auto; background: rgba(255,255,255,.25); border-radius: 99px; padding: 6px 18px; font-size: .8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 28px; box-shadow: var(--shadow); transition: transform .2s; }
-    .card:hover { transform: translateY(-2px); }
-    .card-header { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
-    .card-icon { width: 44px; height: 44px; border-radius: 12px; background: var(--accent-soft); display: grid; place-items: center; color: var(--accent); }
-    .card-icon svg { width: 22px; height: 22px; stroke-width: 2.25; }
-    .card-title { font-size: 1.05rem; font-weight: 700; color: var(--text); }
-    .card-sub { font-size: .85rem; color: var(--muted); margin-top: 2px; }
-    .input-group { margin-bottom: 18px; }
-    .label { display: block; font-size: .78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 8px; margin-left: 2px; }
-    input { width: 100%; padding: 12px 16px; background: var(--surface2); border: 1.5px solid var(--border); border-radius: 12px; font-size: .95rem; font-family: inherit; transition: all .2s; color: var(--text); }
-    input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 4px var(--accent-soft); background: #fff; }
-    .btn { margin-top: 6px; width: 100%; padding: 14px 0; background: var(--accent); color: #fff; border: none; border-radius: 12px; font-size: .95rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all .2s; box-shadow: 0 4px 12px rgba(211,84,0,.15); }
-    .btn:hover { background: var(--accent-h); transform: translateY(-1px); box-shadow: 0 6px 16px rgba(211,84,0,.2); }
-    .btn:active { transform: translateY(0); }
-    .btn svg { width: 18px; height: 18px; stroke-width: 2.5; }
-    .btn.ghost { background: transparent; border: 1.5px solid var(--border); color: var(--text); margin-top: 10px; box-shadow: none; }
-    .btn.ghost:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
-    .result { margin-top: 20px; padding: 16px; background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; font-family: 'SF Mono', 'Courier New', monospace; font-size: .8rem; color: var(--text); line-height: 1.6; min-height: 80px; white-space: pre-wrap; word-break: break-all; overflow-y: auto; max-height: 250px; }
-    .result.ok { border-color: var(--green); background: rgba(39,174,96,.04); }
-    .result.err { border-color: var(--red); background: rgba(192,57,43,.04); }
-    .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
-    .metric-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 14px; padding: 18px 12px; text-align: center; }
-    .metric-val { font-size: 1.6rem; font-weight: 800; color: var(--accent); }
-    .metric-lbl { font-size: .72rem; color: var(--muted); text-transform: uppercase; font-weight: 600; margin-top: 4px; letter-spacing: 0.03em; }
-    .chart-container { position: relative; height: 160px; width: 100%; }
-    .divider { border: 0; border-top: 1px solid var(--border); margin: 24px 0; }
-    @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } .metric-grid { grid-template-columns: 1fr; } }
-  </style>
-</head>
-<body>
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>CNS Quantum VPN — PQC Security Gateway</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg:#060b18;--bg2:#0a1128;--glass:rgba(255,255,255,.04);--glass2:rgba(255,255,255,.07);--border:rgba(255,255,255,.08);--border2:rgba(0,212,255,.2);--cyan:#00d4ff;--purple:#7c3aed;--green:#10b981;--red:#ef4444;--amber:#f59e0b;--text:#e2e8f0;--muted:#64748b;--r:16px;--shadow:0 8px 32px rgba(0,0,0,.4)}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 50% at 20% 10%,rgba(124,58,237,.12),transparent),radial-gradient(ellipse 60% 40% at 80% 80%,rgba(0,212,255,.08),transparent);pointer-events:none;z-index:0}
+.sidebar{width:72px;background:rgba(10,17,40,.9);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:20px 0;gap:8px;position:fixed;top:0;left:0;bottom:0;z-index:100;backdrop-filter:blur(20px)}
+.logo{width:44px;height:44px;background:linear-gradient(135deg,var(--cyan),var(--purple));border-radius:12px;display:grid;place-items:center;font-weight:800;font-size:1.1rem;color:#fff;margin-bottom:24px;box-shadow:0 0 20px rgba(0,212,255,.3)}
+.ni{width:42px;height:42px;border-radius:10px;display:grid;place-items:center;color:var(--muted);cursor:pointer;transition:all .2s;border:1px solid transparent}
+.ni:hover,.ni.active{background:rgba(0,212,255,.1);color:var(--cyan);border-color:rgba(0,212,255,.2)}
+.ni svg{width:20px;height:20px}
+.spacer{flex:1}
+.main{margin-left:72px;flex:1;display:flex;flex-direction:column;min-width:0}
+.topbar{background:rgba(6,11,24,.8);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 32px;height:64px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:90}
+.brand{font-size:1rem;font-weight:700;letter-spacing:-.02em}
+.brand span{color:var(--muted);font-weight:400;font-size:.8rem;display:block;margin-top:-2px}
+.pill{display:flex;align-items:center;gap:8px;background:var(--glass2);border:1px solid var(--border2);border-radius:99px;padding:6px 16px;font-size:.8rem;font-weight:600;backdrop-filter:blur(10px)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,.4)}50%{box-shadow:0 0 0 6px rgba(16,185,129,0)}}
+.content{padding:32px;max-width:1280px;margin:0 auto;width:100%;position:relative;z-index:1}
+.hero{background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(0,212,255,.08));border:1px solid var(--border2);border-radius:20px;padding:28px 36px;display:flex;align-items:center;gap:20px;margin-bottom:28px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-50%;right:-10%;width:300px;height:300px;background:radial-gradient(circle,rgba(0,212,255,.06),transparent);border-radius:50%;pointer-events:none}
+.hero-icon{width:60px;height:60px;background:linear-gradient(135deg,var(--cyan),var(--purple));border-radius:16px;display:grid;place-items:center;flex-shrink:0;box-shadow:0 0 30px rgba(0,212,255,.25)}
+.hero h1{font-size:1.3rem;font-weight:800;background:linear-gradient(90deg,#fff,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero p{font-size:.85rem;color:var(--muted);margin-top:4px}
+.hero-badges{margin-left:auto;display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0}
+.badge{background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.2);border-radius:99px;padding:4px 12px;font-size:.72rem;font-weight:700;color:var(--cyan);text-transform:uppercase;letter-spacing:.05em}
+.badge.purple{background:rgba(124,58,237,.1);border-color:rgba(124,58,237,.3);color:#a78bfa}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-bottom:20px}
+.card{background:var(--glass);border:1px solid var(--border);border-radius:var(--r);padding:24px;backdrop-filter:blur(20px);transition:border-color .2s,transform .2s}
+.card:hover{border-color:rgba(0,212,255,.15);transform:translateY(-2px)}
+.ch{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.ci{width:40px;height:40px;border-radius:10px;background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.15);display:grid;place-items:center;color:var(--cyan);flex-shrink:0}
+.ci svg{width:20px;height:20px}
+.ci.purple{background:rgba(124,58,237,.1);border-color:rgba(124,58,237,.2);color:#a78bfa}
+.ci.green{background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.2);color:var(--green)}
+.ci.red{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.2);color:var(--red)}
+.ct{font-size:.95rem;font-weight:700}
+.cs{font-size:.78rem;color:var(--muted);margin-top:2px}
+label{display:block;font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;margin-top:14px}
+input{width:100%;padding:11px 14px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;font-size:.9rem;font-family:'Inter',sans-serif;color:var(--text);transition:all .2s}
+input:focus{border-color:var(--cyan);outline:none;box-shadow:0 0 0 3px rgba(0,212,255,.1);background:rgba(0,212,255,.03)}
+.btn{margin-top:14px;width:100%;padding:12px;background:linear-gradient(135deg,var(--cyan),#0099cc);color:#000;border:none;border-radius:10px;font-size:.88rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;font-family:'Inter',sans-serif}
+.btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,212,255,.3)}
+.btn.purple-btn{background:linear-gradient(135deg,var(--purple),#5b21b6);color:#fff}
+.btn.purple-btn:hover{box-shadow:0 6px 20px rgba(124,58,237,.3)}
+.btn.ghost{background:transparent;border:1px solid var(--border);color:var(--text);margin-top:8px}
+.btn.ghost:hover{border-color:var(--cyan);color:var(--cyan);background:rgba(0,212,255,.05)}
+.btn.red-btn{background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff}
+.btn svg{width:16px;height:16px}
+.result{margin-top:14px;padding:14px;background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:10px;font-family:'JetBrains Mono',monospace;font-size:.75rem;color:var(--text);line-height:1.7;min-height:72px;white-space:pre-wrap;word-break:break-all;max-height:220px;overflow-y:auto}
+.result.ok{border-color:rgba(16,185,129,.3);background:rgba(16,185,129,.05);color:#6ee7b7}
+.result.err{border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.05);color:#fca5a5}
+.result.warn{border-color:rgba(245,158,11,.3);background:rgba(245,158,11,.05);color:#fcd34d}
+.mval{font-size:1.8rem;font-weight:800;background:linear-gradient(90deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.mlbl{font-size:.7rem;color:var(--muted);text-transform:uppercase;font-weight:600;margin-top:4px;letter-spacing:.04em}
+.mcard{background:var(--glass2);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center}
+.token-table{width:100%;border-collapse:collapse;font-family:'JetBrains Mono',monospace;font-size:.72rem;margin-top:10px}
+.token-table th{background:rgba(0,212,255,.1);color:var(--cyan);padding:6px 8px;text-align:center;font-weight:700;letter-spacing:.05em;font-size:.68rem;text-transform:uppercase}
+.token-table td{padding:5px 8px;text-align:center;border-bottom:1px solid rgba(255,255,255,.04);color:var(--text)}
+.token-table tr:hover td{background:rgba(0,212,255,.04)}
+.basis-rect{color:#00d4ff;font-weight:700}
+.basis-diag{color:#a78bfa;font-weight:700}
+.bit-1{color:#10b981;font-weight:700}
+.bit-0{color:var(--muted)}
+.tag-ok{display:inline-block;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);color:#6ee7b7;border-radius:6px;padding:2px 8px;font-size:.7rem;font-weight:700}
+.tag-err{display:inline-block;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#fca5a5;border-radius:6px;padding:2px 8px;font-size:.7rem;font-weight:700}
+.flow{display:flex;align-items:center;gap:6px;padding:12px;background:rgba(0,0,0,.3);border-radius:10px;margin:8px 0;border-left:3px solid var(--cyan);font-size:.78rem;transition:all .3s}
+.flow.active{border-left-color:var(--green);background:rgba(16,185,129,.07)}
+.flow.blocked{border-left-color:var(--red);background:rgba(239,68,68,.07)}
+.flow.pending{border-left-color:var(--muted);opacity:.5}
+.flow-icon{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;font-size:.9rem;flex-shrink:0}
+.session-timer{font-family:'JetBrains Mono',monospace;font-size:2rem;font-weight:700;background:linear-gradient(90deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-align:center;padding:8px 0}
+.audit-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;margin:4px 0;background:rgba(0,0,0,.2);font-size:.77rem;border-left:2px solid var(--border)}
+.audit-row.success{border-left-color:var(--green)}
+.audit-row.failed{border-left-color:var(--red)}
+.audit-row.info{border-left-color:var(--cyan)}
+.audit-row.warn{border-left-color:var(--amber)}
+.arch-flow{display:flex;flex-direction:column;gap:4px;align-items:center;padding:10px}
+.arch-node{background:var(--glass2);border:1px solid var(--border2);border-radius:10px;padding:8px 20px;font-size:.78rem;font-weight:600;text-align:center;min-width:200px;position:relative}
+.arch-arrow{font-size:.8rem;color:var(--cyan);text-align:center;margin:2px 0}
+.arch-label{font-size:.65rem;color:var(--muted);text-align:center;margin-top:2px}
+.section-title{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+.chart-box{position:relative;height:150px;width:100%}
+.kyber-info{background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.2);border-radius:10px;padding:12px;font-size:.75rem;margin-top:10px}
+.kyber-row{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.kyber-row:last-child{border-bottom:none}
+.kyber-key{color:var(--muted)}
+.kyber-val{color:#a78bfa;font-family:'JetBrains Mono',monospace;font-weight:600}
+.hidden{display:none}
+@media(max-width:900px){.grid2,.grid3{grid-template-columns:1fr}}
+</style></head><body>
 <aside class="sidebar">
-  <div class="logo">Q</div>
-  <div class="nav-icon active" title="Dashboard">
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
-  </div>
-  <div class="nav-icon" title="Audit Log">
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M8 7h6"/><path d="M8 11h8"/></svg>
-  </div>
-  <div class="nav-icon" title="Network">
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M20 15h2"/></svg>
-  </div>
-  <div class="spacer"></div>
-  <div class="nav-icon" title="Settings">
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>
-  </div>
+<div class="logo">Q</div>
+<div class="ni active" title="Dashboard" onclick="showTab('dash')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg></div>
+<div class="ni" title="Auth" onclick="showTab('auth')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+<div class="ni" title="VPN" onclick="showTab('vpn')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+<div class="ni" title="Attacks" onclick="showTab('attacks')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+<div class="ni" title="Audit" onclick="showTab('audit')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M8 7h6"/><path d="M8 11h8"/></svg></div>
+<div class="spacer"></div>
+<div class="ni" title="Architecture" onclick="showTab('arch')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg></div>
+<div class="ni" title="Benchmark" onclick="showTab('bench')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></div>
+<div class="ni" title="Stats/ROC" onclick="showTab('stats')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m7 16 4-8 4 8"/></svg></div>
+<div class="ni" title="HNDL Attack" onclick="showTab('hndl')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg></div>
+<div class="ni" title="Benchmark" onclick="showTab('bench')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></div>
+<div class="ni" title="Stats/ROC" onclick="showTab('stats')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m7 16 4-8 4 8"/></svg></div>
+<div class="ni" title="HNDL Attack" onclick="showTab('hndl')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg></div>
+<div class="ni" title="Benchmark" onclick="showTab('bench')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></div>
+<div class="ni" title="Stats/ROC" onclick="showTab('stats')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m7 16 4-8 4 8"/></svg></div>
+<div class="ni" title="HNDL Attack" onclick="showTab('hndl')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg></div>
 </aside>
 <div class="main">
-  <header class="topbar">
-    <div class="brand">CNS Quantum VPN <span>Unified Post-Quantum Security Gateway</span></div>
-    <div class="spacer"></div>
-    <div class="status-pill"><div class="dot"></div><span id="stText">System Online</span></div>
-  </header>
-  <div class="content">
-    <div class="welcome">
-      <div class="icon-wrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
-      <div><h2>Quantum Shield Active</h2><p>Hybrid CRYSTALS-Kyber KEM + Wiesner Quantum OTP &middot; Gateway @ Azure</p></div>
-      <div class="tag">Post-Quantum</div>
-    </div>
-    <div class="grid-2" style="margin-bottom:24px">
-      <div class="card">
-        <div class="card-header"><div class="card-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg></div><div><div class="card-title">Account Registration</div><div class="card-sub">Generate unique PQC keypairs</div></div></div>
-        <div class="input-group"><label class="label">Username</label><input type="text" id="rU" placeholder="e.g. jdoe"></div>
-        <div class="input-group"><label class="label">Password</label><input type="password" id="rP" placeholder="••••••••"></div>
-        <button class="btn" id="btR"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Register via Quantum Bridge</button>
-        <div class="result" id="resR">Ready for registration...</div>
-      </div>
-      <div class="card">
-        <div class="card-header"><div class="card-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><div><div class="card-title">Quantum MFA Login</div><div class="card-sub">Verify Wiesner-style OTP token</div></div></div>
-        <div class="input-group"><label class="label">Username</label><input type="text" id="lU" placeholder="e.g. jdoe"></div>
-        <div class="input-group"><label class="label">Password</label><input type="password" id="lP" placeholder="••••••••"></div>
-        <button class="btn" id="btL"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>Authenticate in Real-time</button>
-        <div class="result" id="resL">Ready for authentication...</div>
-      </div>
-    </div>
-    <div class="grid-2">
-      <div class="card">
-        <div class="card-header"><div class="card-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="12" x="2" y="9" rx="2" ry="2"/><circle cx="12" cy="5" r="3"/></svg></div><div><div class="card-title">VPN Configuration</div><div class="card-sub">Gated by PQC authentication status</div></div></div>
-        <div class="input-group"><label class="label">Authorized User</label><input type="text" id="vU" placeholder="Must be logged in"></div>
-        <button class="btn" id="btV"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>Fetch WireGuard Config</button>
-        <button class="btn ghost" id="btVU">Bypass Auth (Simulate Breach)</button>
-        <div class="result" id="resV">Config will appear here...</div>
-      </div>
-      <div class="card">
-        <div class="card-header"><div class="card-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></div><div><div class="card-title">Live Engine Metrics</div><div class="card-sub">Quantum entropy & success rates</div></div></div>
-        <div class="metric-grid"><div class="metric-card"><div class="metric-val" id="m1">—</div><div class="metric-lbl">Auth Rate</div></div><div class="metric-card"><div class="metric-val" id="m2">—</div><div class="metric-lbl">Blocked</div></div><div class="metric-card"><div class="metric-val" id="m3">—</div><div class="metric-lbl">Avg Conf</div></div></div>
-        <div class="chart-container"><canvas id="cM"></canvas></div><hr class="divider">
-        <button class="btn ghost" id="btM"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>Refresh Engine State</button>
-      </div>
-    </div>
-    <div class="grid-2" style="margin-top:24px">
-      <div class="card">
-        <div class="card-header"><div class="card-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div><div><div class="card-title">Random Guessing simulation</div><div class="card-sub">Brute-force attack on quantum OTP</div></div></div>
-        <div class="input-group"><label class="label">Target</label><input type="text" id="aU1" placeholder="alice"></div>
-        <button class="btn" id="btA1">Launch Simulation</button>
-        <div style="height:200px;margin-top:20px"><canvas id="cA1"></canvas></div>
-        <div id="stA1" style="margin-top:10px;font-size:.8rem;color:var(--muted);text-align:center">Waiting to start...</div>
-      </div>
-      <div class="card">
-        <div class="card-header"><div class="card-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2.1a9 9 0 0 1 0 16.2"/><path d="M12 12h.01"/><path d="M19 12h.01"/><path d="M15 12h.01"/><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8Z"/></svg></div><div><div class="card-title">Replay Attack Simulation</div><div class="card-sub">Token capture and re-use attempt</div></div></div>
-        <div class="input-group"><label class="label">Target (Logged In)</label><input type="text" id="aU2" placeholder="alice"></div>
-        <button class="btn" id="btA2">Launch Simulation</button>
-        <div style="height:200px;margin-top:20px"><canvas id="cA2"></canvas></div>
-        <div id="stA2" style="margin-top:10px;font-size:.8rem;color:var(--muted);text-align:center">Waiting to start...</div>
-      </div>
-    </div>
-  </div>
+<header class="topbar">
+<div class="brand">CNS Quantum VPN <span>Post-Quantum Security Gateway — CRYSTALS-Kyber-512 + Wiesner QKD</span></div>
+<div class="spacer"></div>
+<div class="pill"><div class="dot"></div><span id="stText">System Online</span></div>
+</header>
+<div class="content">
+
+<!-- DASHBOARD TAB -->
+<div id="tab-dash">
+<div class="hero">
+<div class="hero-icon"><svg width="28" height="28" fill="none" stroke="#000" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+<div><h1>Quantum Shield Active</h1><p>2-Layer Auth: Wiesner QKD Token ? CRYSTALS-Kyber-512 KEM ? WireGuard VPN (Azure)</p></div>
+<div class="hero-badges"><span class="badge">FIPS 203</span><span class="badge purple">NIST PQC</span><span class="badge">128-bit Quantum</span></div>
 </div>
+<div class="grid3">
+<div class="mcard"><div class="mval" id="m1">—</div><div class="mlbl">Auth Success Rate</div></div>
+<div class="mcard"><div class="mval" id="m2">—</div><div class="mlbl">Attacks Blocked</div></div>
+<div class="mcard"><div class="mval" id="m3">—</div><div class="mlbl">Avg Confidence</div></div>
+</div>
+<div class="grid2">
+<div class="card">
+<div class="ch"><div class="ci purple"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></div><div><div class="ct">Confidence History</div><div class="cs">Wiesner token verification scores</div></div></div>
+<div class="chart-box"><canvas id="cM"></canvas></div>
+<button class="btn ghost" style="margin-top:12px" onclick="refM()"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:15px;height:15px"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg> Refresh</button>
+</div>
+<div class="card">
+<div class="ch"><div class="ci green"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><div><div class="ct">Active VPN Peers</div><div class="cs">Dynamically managed — PQC-gated</div></div></div>
+<div id="peers-list"><div style="color:var(--muted);font-size:.8rem;text-align:center;padding:20px">No active peers</div></div>
+<button class="btn ghost" style="margin-top:12px" onclick="loadPeers()">Refresh Peers</button>
+</div>
+</div>
+</div>
+
+<!-- AUTH TAB -->
+<div id="tab-auth" class="hidden">
+<div class="grid2">
+<div class="card">
+<div class="ch"><div class="ci"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg></div><div><div class="ct">Register Account</div><div class="cs">Generate Kyber-512 keypair + Wiesner token</div></div></div>
+<label>Username</label><input id="rU" placeholder="e.g. alice"/>
+<label>Password</label><input type="password" id="rP" placeholder="••••••••"/>
+<button class="btn" id="btR" onclick="doRegister()"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Register via Quantum Bridge</button>
+<div class="result" id="resR">Ready for registration...</div>
+<div id="kyber-info" class="hidden">
+<div class="section-title" style="margin-top:16px">Kyber-512 Keypair Generated</div>
+<div class="kyber-info" id="kyber-details"></div>
+</div>
+<div id="token-section" class="hidden">
+<div class="section-title" style="margin-top:16px">Wiesner Quantum Token <span class="tag-ok">Server-Held OTP</span></div>
+<div style="font-size:.73rem;color:var(--muted);margin-bottom:8px">16-position quantum-inspired token. Each position has a basis (measurement basis) and bit value. Token is consumed on auth and rotated.</div>
+<table class="token-table" id="token-tbl"><thead><tr><th>#</th><th>Basis</th><th>Type</th><th>Bit</th></tr></thead><tbody id="token-body"></tbody></table>
+<button class="btn ghost" style="margin-top:10px" onclick="downloadCred()">? Download Credential File</button>
+</div>
+</div>
+<div class="card">
+<div class="ch"><div class="ci purple"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><div><div class="ct">Quantum MFA Login</div><div class="cs">Layer 1: Wiesner QKD → Layer 2: Kyber KEM</div></div></div>
+<label>Username</label><input id="lU" placeholder="e.g. alice" oninput="updateFileHint()"/>
+<label>Password</label><input type="password" id="lP" placeholder="••••••••"/>
+<div id="file-hint" style="font-size:.73rem;padding:8px 10px;border-radius:8px;margin-top:10px;background:rgba(0,212,255,.06);border:1px solid rgba(0,212,255,.15);color:var(--cyan);display:none">
+  🔑 <strong>Returning user?</strong> Upload your quantum credential file from your last session.
+  <br><span style="color:var(--muted)">First-time login after registration: leave empty — server holds your token.</span>
+</div>
+<label id="file-label" style="margin-top:10px">Quantum Credential File <span id="file-optional" style="color:var(--muted);font-weight:400;text-transform:none;font-size:.72rem">(optional — first login)</span></label>
+<input type="file" id="lT" accept=".json" style="padding:11px 14px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;font-size:.85rem" onchange="onFileSelected()"/>
+<div id="file-status" style="font-size:.72rem;margin-top:4px;color:var(--muted)"></div>
+<button class="btn purple-btn" id="btL" onclick="doLogin()"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>Authenticate</button>
+<div class="result" id="resL">Ready for authentication...</div>
+<div id="auth-layers" class="hidden" style="margin-top:12px">
+<div class="section-title">Authentication Pipeline</div>
+<div class="flow pending" id="fl1"><div class="flow-icon" style="background:rgba(0,212,255,.1)">🔑</div><div><strong>Layer 1:</strong> Wiesner QKD Token Verification</div></div>
+<div class="flow pending" id="fl2"><div class="flow-icon" style="background:rgba(124,58,237,.1)">⚛️</div><div><strong>Layer 2:</strong> CRYSTALS-Kyber-512 KEM</div></div>
+<div class="flow pending" id="fl3"><div class="flow-icon" style="background:rgba(16,185,129,.1)">🔒</div><div><strong>Layer 3:</strong> WireGuard Peer Dynamically Added</div></div>
+</div>
+<div id="session-section" class="hidden" style="margin-top:12px">
+<div class="section-title">Active Session</div>
+<div class="session-timer" id="sessionTimer">00:00:00</div>
+<div style="text-align:center;font-size:.75rem;color:var(--muted)">Session TTL remaining</div>
+<div class="kyber-info" id="session-details" style="margin-top:10px"></div>
+<div id="cred-download-box" style="margin-top:10px;padding:10px;background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.2);border-radius:8px;font-size:.75rem;color:#6ee7b7">
+  ✅ <strong>New credential file ready!</strong> Download it now — you'll need it for your next login.
+  <button class="btn" style="margin-top:8px;background:linear-gradient(135deg,#10b981,#059669);color:#fff" onclick="downloadCred()">⬇️ Download Credential File</button>
+</div>
+<button class="btn red-btn" style="margin-top:8px" onclick="doLogout()">Logout &amp; Revoke Peer</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- VPN TAB -->
+<div id="tab-vpn" class="hidden">
+<div class="grid2">
+<div class="card">
+<div class="ch"><div class="ci green"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><div><div class="ct">VPN Configuration</div><div class="cs">PQC-gated WireGuard — requires authentication</div></div></div>
+<label>Authorized Username</label><input id="vU" placeholder="Must be logged in first"/>
+<button class="btn" onclick="getVPN()"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>Download WireGuard Config</button>
+<button class="btn ghost" onclick="breachSim()">? Bypass Attempt (Breach Sim)</button>
+<div class="result" id="resV">Config appears here after authentication...</div>
+</div>
+<div class="card">
+<div class="ch"><div class="ci"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6" rx="1"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M20 15h2"/></svg></div><div><div class="ct">Architecture Flow</div><div class="cs">How PQC gates VPN access</div></div></div>
+<div class="arch-flow">
+<div class="arch-node" style="border-color:rgba(0,212,255,.4);color:var(--cyan)">?? Client</div>
+<div class="arch-arrow">? username + password</div>
+<div class="arch-node">?? Node.js Backend (Port 3000)</div>
+<div class="arch-arrow">? token + user_id</div>
+<div class="arch-node" style="border-color:rgba(124,58,237,.4);color:#a78bfa">? Flask PQC Bridge (Port 5001)</div>
+<div class="arch-label">Wiesner OTP verify ? Kyber-512 KEM ? session key</div>
+<div class="arch-arrow">? auth success</div>
+<div class="arch-node" style="border-color:rgba(16,185,129,.4);color:var(--green)">?? WireGuard: `wg set wg0 peer` ADDED</div>
+<div class="arch-label">Dynamic peer allocation — auto-removed after 1h</div>
+<div class="arch-arrow">? config returned</div>
+<div class="arch-node" style="border-color:rgba(0,212,255,.4)">?? Client imports .conf ? VPN active</div>
+<div class="arch-arrow">? session expires / logout</div>
+<div class="arch-node" style="border-color:rgba(239,68,68,.4);color:var(--red)">? Peer REMOVED — tunnel closed</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ATTACKS TAB -->
+<div id="tab-attacks" class="hidden">
+<div class="hero" style="margin-bottom:20px;background:rgba(239,68,68,.07);border-color:rgba(239,68,68,.2)">
+<div class="hero-icon" style="background:linear-gradient(135deg,#ef4444,#b91c1c)"><svg width="28" height="28" fill="none" stroke="#fff" stroke-width="2.5" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+<div><h1 style="background:linear-gradient(90deg,#ef4444,#f59e0b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Attack Simulation Lab</h1><p>Replay, random impersonation, and partial-guess attacks — all blocked by quantum token replay protection</p></div>
+</div>
+<div class="grid2">
+<div class="card">
+<div class="ch"><div class="ci red"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 2.1a9 9 0 0 1 0 16.2"/><path d="M12 12h.01"/><path d="M19 12h.01"/></svg></div><div><div class="ct">Replay Attack</div><div class="cs">Captures + reuses consumed token — always blocked</div></div></div>
+<label>Target User</label><input id="aU2" placeholder="alice"/>
+<button class="btn red-btn" onclick="runReplay()">? Launch Replay Attack</button>
+<div id="replay-flow" style="margin-top:12px"></div>
+<div class="chart-box" style="height:140px;margin-top:12px"><canvas id="cA2"></canvas></div>
+<div id="stA2" style="margin-top:8px;font-size:.77rem;color:var(--muted);text-align:center">Waiting...</div>
+</div>
+<div class="card">
+<div class="ch"><div class="ci red"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div><div><div class="ct">Random Impersonation</div><div class="cs">Brute-force random token guessing</div></div></div>
+<label>Target User</label><input id="aU1" placeholder="alice"/>
+<button class="btn red-btn" onclick="runRandom()">? Launch Random Attack</button>
+<div class="chart-box" style="height:140px;margin-top:20px"><canvas id="cA1"></canvas></div>
+<div id="stA1" style="margin-top:8px;font-size:.77rem;color:var(--muted);text-align:center">Waiting...</div>
+</div>
+</div>
+</div>
+
+<!-- AUDIT TAB -->
+<div id="tab-audit" class="hidden">
+<div class="card">
+<div class="ch"><div class="ci"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M8 7h6"/><path d="M8 11h8"/></svg></div><div><div class="ct">Security Audit Log</div><div class="cs">Real-time event stream from PQC bridge</div></div><button class="btn ghost" style="margin:0;margin-left:auto;width:auto;padding:8px 16px" onclick="loadAudit()">Refresh</button></div>
+<div id="audit-list" style="max-height:500px;overflow-y:auto"><div style="color:var(--muted);text-align:center;padding:30px;font-size:.85rem">Loading audit events...</div></div>
+</div>
+</div>
+
+
+<!-- BENCHMARK TAB -->
+<div id="tab-bench" class="hidden">
+<div class="hero" style="margin-bottom:20px;background:rgba(124,58,237,.07);border-color:rgba(124,58,237,.2)">
+<div class="hero-icon" style="background:linear-gradient(135deg,#7c3aed,#5b21b6)"><svg width="28" height="28" fill="none" stroke="#fff" stroke-width="2.5" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></div>
+<div><h1 style="background:linear-gradient(90deg,#a78bfa,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">PQC Performance Benchmarks</h1><p>Kyber-512 + Dilithium-2 vs RSA-2048 + ECDH-P256 — Latency Comparison</p></div>
+<div class="hero-badges"><span class="badge purple">FIPS 203</span><span class="badge purple">FIPS 204</span></div>
+</div>
+<div class="card" style="margin-bottom:20px">
+<div class="ch"><div class="ci purple"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg></div><div><div class="ct">Live Benchmark</div><div class="cs">Runs Kyber-512 + Dilithium-2 operations and compares against classical crypto</div></div><button class="btn purple-btn" style="margin:0;margin-left:auto;width:auto;padding:8px 20px" onclick="runBench()">Run Benchmark</button></div>
+<div id="bench-status" style="color:var(--muted);font-size:.82rem;text-align:center;padding:8px">Click "Run Benchmark" to start...</div>
+</div>
+<div class="grid2" style="margin-bottom:20px">
+<div class="card"><div class="ch"><div class="ci purple"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div><div><div class="ct">Latency Comparison (ms)</div><div class="cs">Lower = faster</div></div></div><div class="chart-box"><canvas id="cBench"></canvas></div></div>
+<div class="card"><div class="ch"><div class="ci purple"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/></svg></div><div><div class="ct">Key & Signature Sizes (bytes)</div><div class="cs">Larger = more data transmitted</div></div></div><div class="chart-box"><canvas id="cSizes"></canvas></div></div>
+</div>
+<div class="card"><div class="section-title">Quantum Security Comparison</div><div id="bench-table" style="overflow-x:auto"><div style="color:var(--muted);text-align:center;padding:20px;font-size:.82rem">Run benchmark to populate table...</div></div></div>
+</div>
+
+<!-- STATS TAB -->
+<div id="tab-stats" class="hidden">
+<div class="hero" style="margin-bottom:20px;background:rgba(16,185,129,.06);border-color:rgba(16,185,129,.2)">
+<div class="hero-icon" style="background:linear-gradient(135deg,#10b981,#059669)"><svg width="28" height="28" fill="none" stroke="#fff" stroke-width="2.5" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m7 16 4-8 4 8"/><path d="M7 12h8"/></svg></div>
+<div><h1 style="background:linear-gradient(90deg,#34d399,#10b981);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Statistical Security Analysis</h1><p>Confidence score distributions, ROC curves, noise tolerance — 6 scenarios, 300 samples each</p></div>
+</div>
+<div class="grid2" style="margin-bottom:20px">
+<div class="card"><div class="ch"><div class="ci green"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></div><div><div class="ct">Confidence Distributions</div><div class="cs">Benign vs. Noisy vs. Adversarial</div></div></div><div class="chart-box" style="height:180px"><canvas id="cDist"></canvas></div></div>
+<div class="card"><div class="ch"><div class="ci green"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M3 15l5-5 4 4 8-8"/></svg></div><div><div class="ct">ROC Curve</div><div class="cs">True Positive Rate vs. False Positive Rate</div></div></div><div class="chart-box" style="height:180px"><canvas id="cROC"></canvas></div></div>
+</div>
+<div class="grid2">
+<div class="card"><div class="ch"><div class="ci green"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div><div><div class="ct">Noise Tolerance Curve</div><div class="cs">False Negative Rate vs. Noise Level</div></div></div><div class="chart-box" style="height:180px"><canvas id="cNoise"></canvas></div></div>
+<div class="card"><div class="ch"><div class="ci green"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div><div><div class="ct">Accept Rate at 85% Threshold</div><div class="cs">Per scenario — benign should be near 100%, adversarial near 0%</div></div></div><div id="stats-table" style="padding:8px"><div style="color:var(--muted);text-align:center;padding:20px;font-size:.82rem">Loading...</div></div></div>
+</div>
+<div style="text-align:center;margin-top:16px"><button class="btn" style="width:auto;padding:10px 28px" onclick="loadStats()">Run Statistical Analysis (300 samples)</button></div>
+</div>
+
+<!-- HNDL TAB -->
+<div id="tab-hndl" class="hidden">
+<div class="hero" style="margin-bottom:20px;background:rgba(245,158,11,.06);border-color:rgba(245,158,11,.2)">
+<div class="hero-icon" style="background:linear-gradient(135deg,#f59e0b,#d97706)"><svg width="28" height="28" fill="none" stroke="#000" stroke-width="2.5" viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg></div>
+<div><h1 style="background:linear-gradient(90deg,#fbbf24,#f59e0b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Harvest-Now-Decrypt-Later Attack</h1><p>Nation-state adversary archives encrypted traffic today — decrypts with future quantum computer. MAQRAF defenses demonstrated.</p></div>
+</div>
+<div class="grid2">
+<div class="card">
+<div class="ch"><div class="ci" style="background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.2);color:var(--amber)"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><div><div class="ct">HNDL Attack Simulation</div><div class="cs">What an adversary captures + future quantum attack attempt</div></div></div>
+<button class="btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#000" onclick="loadHNDL()">Simulate HNDL Scenario</button>
+<div class="result" id="hndl-capture" style="margin-top:12px">Click to simulate captured traffic...</div>
+</div>
+<div class="card">
+<div class="ch"><div class="ci green"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><div><div class="ct">MAQRAF Defenses</div><div class="cs">Why replay still fails even after quantum decryption</div></div></div>
+<div id="hndl-defenses"><div style="color:var(--muted);text-align:center;padding:20px;font-size:.82rem">Run simulation to see defenses...</div></div>
+</div>
+</div>
+</div>
+<!-- ARCH TAB -->
+<div id="tab-arch" class="hidden">
+<div class="grid2">
+<div class="card">
+<div class="ch"><div class="ci purple"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 14.14 14.14"/></svg></div><div><div class="ct">CRYSTALS-Kyber-512</div><div class="cs">NIST FIPS 203 (2024) — Official PQC Standard</div></div></div>
+<div class="kyber-info">
+<div class="kyber-row"><span class="kyber-key">Algorithm</span><span class="kyber-val">CRYSTALS-Kyber-512</span></div>
+<div class="kyber-row"><span class="kyber-key">Standard</span><span class="kyber-val">NIST FIPS 203 (2024)</span></div>
+<div class="kyber-row"><span class="kyber-key">Hardness</span><span class="kyber-val">Module-LWE (k=2, n=256, q=3329)</span></div>
+<div class="kyber-row"><span class="kyber-key">Security</span><span class="kyber-val">128-bit quantum (NIST Cat. 1)</span></div>
+<div class="kyber-row"><span class="kyber-key">Transform</span><span class="kyber-val">Fujisaki-Okamoto (IND-CCA2)</span></div>
+<div class="kyber-row"><span class="kyber-key">Public Key</span><span class="kyber-val">800 bytes</span></div>
+<div class="kyber-row"><span class="kyber-key">Secret Key</span><span class="kyber-val">1632 bytes</span></div>
+<div class="kyber-row"><span class="kyber-key">Ciphertext</span><span class="kyber-val">768 bytes</span></div>
+<div class="kyber-row"><span class="kyber-key">Shared Secret</span><span class="kyber-val">32 bytes</span></div>
+<div class="kyber-row"><span class="kyber-key">NTT Domain</span><span class="kyber-val">Z_3329[X]/(X^256+1)</span></div>
+</div>
+</div>
+<div class="card">
+<div class="ch"><div class="ci"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M12 2v4m0 12v4M2 12h4m12 0h4"/></svg></div><div><div class="ct">Wiesner QKD Token</div><div class="cs">Quantum-inspired one-time authentication</div></div></div>
+<div class="kyber-info">
+<div class="kyber-row"><span class="kyber-key">Scheme</span><span class="kyber-val">Wiesner Quantum Money (1983)</span></div>
+<div class="kyber-row"><span class="kyber-key">Token Length</span><span class="kyber-val">16 (basis, bit) pairs</span></div>
+<div class="kyber-row"><span class="kyber-key">Bases</span><span class="kyber-val">Rectilinear (+) / Diagonal (×)</span></div>
+<div class="kyber-row"><span class="kyber-key">One-Time</span><span class="kyber-val">Consumed on use, rotated immediately</span></div>
+<div class="kyber-row"><span class="kyber-key">Replay Guard</span><span class="kyber-val">Global SHA-256 hash registry</span></div>
+<div class="kyber-row"><span class="kyber-key">Threshold</span><span class="kyber-val">=85% basis-match confidence</span></div>
+<div class="kyber-row"><span class="kyber-key">Quantum No-Clone</span><span class="kyber-val">Simulated — cannot copy unknown basis</span></div>
+</div>
+</div>
+</div>
+</div>
+
+</div></div>
 <script>
-  const setS = t => document.getElementById("stText").textContent = t;
-  const ctxM = document.getElementById("cM").getContext("2d");
-  const chM = new Chart(ctxM, { type:"line", data:{labels:[], datasets:[{label:"Confidence", data:[], borderColor:"#d35400", backgroundColor:"rgba(211,84,0,.05)", fill:true, tension:0.4, pointRadius:2}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{display:false}, y:{min:0, max:1, ticks:{callback:v=>(v*100)+"%"}}}}});
-  function upM(v) { if(chM.data.labels.length>10){chM.data.labels.shift(); chM.data.datasets[0].data.shift();} chM.data.labels.push(""); chM.data.datasets[0].data.push(v); chM.update(); }
-  const refM = async () => { try { const r=await fetch("/auth/metrics"); const d=await r.json(); document.getElementById("m1").textContent=(d.auth_success_rate*100).toFixed(0)+"%"; document.getElementById("m2").textContent=d.attacks_run || 0; document.getElementById("m3").textContent=d.average_confidence.toFixed(2); if(d.confidence_history) { chM.data.labels = d.confidence_history.map((_, i) => i+1); chM.data.datasets[0].data = d.confidence_history; chM.update(); } } catch(e){} }; refM();
-  document.getElementById("btR").onclick = async () => { const u=document.getElementById("rU").value, p=document.getElementById("rP").value; if(!u||!p)return; document.getElementById("resR").textContent="Processing..."; try { const r=await fetch("/auth/signup",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:u,password:p})}); const d=await r.json(); document.getElementById("resR").textContent=r.ok?`✅ Success!\n\nUser: ${u}\nPQC Key: ${d.pqc_public_key.substring(0,32)}...`:`❌ ${d.message||d.error}`; document.getElementById("resR").className="result "+(r.ok?"ok":"err"); if(r.ok){ document.getElementById("lU").value=u; document.getElementById("vU").value=u; } } catch(e){document.getElementById("resR").textContent="❌ Bridge Offline";} };
-  document.getElementById("btL").onclick = async () => { const u=document.getElementById("lU").value, p=document.getElementById("lP").value; if(!u||!p)return; document.getElementById("resL").textContent="Authenticating..."; try { const r=await fetch("/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:u,password:p})}); const d=await r.json(); document.getElementById("resL").textContent=r.ok?`✅ Authenticated\n\nStatus: ${d.status}\nConf: ${(d.confidence*100).toFixed(1)}%`:`❌ Denied\n\n${d.message||d.error}`; document.getElementById("resL").className="result "+(r.ok?"ok":"err"); if(d.confidence) upM(d.confidence); refM(); } catch(e){document.getElementById("resL").textContent="❌ Server Error";} };
-  document.getElementById("btV").onclick = async () => { const u=document.getElementById("vU").value; try { const r=await fetch(`/auth/vpn-config?name=${u}`); const t=await r.text(); document.getElementById("resV").textContent=t; document.getElementById("resV").className="result "+(r.ok?"ok":"err"); } catch(e){} };
-  document.getElementById("btVU").onclick = async () => { document.getElementById("resV").textContent="Attempting bypass..."; try { const r=await fetch("/auth/vpn-config?name=HACKER"); const t=await r.json(); document.getElementById("resV").textContent="❌ "+(t.message||"Blocked"); document.getElementById("resV").className="result err"; refM(); } catch(e){} };
-  document.getElementById("btM").onclick = refM;
-  function mkChart(id) { return new Chart(document.getElementById(id).getContext("2d"), { type:"bar", data:{labels:[], datasets:[{data:[], backgroundColor:"#d35400"}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{min:0, max:1}}}}); }
-  const chA1 = mkChart("cA1"), chA2 = mkChart("cA2");
-  async function runA(type, u, chart, status) { if(!u)return; chart.data.labels=[]; chart.data.datasets[0].data=[]; chart.update(); status.textContent="Simulating..."; try { const r=await fetch("/auth/attack-visual",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:u,attack_type:type,rounds:8})}); const d=await r.json(); let i=0; const iv = setInterval(()=>{ if(i>=d.results.length){clearInterval(iv); status.textContent="✅ Complete"; refM(); return;} const res=d.results[i]; chart.data.labels.push(i+1); chart.data.datasets[0].data.push(res.confidence); chart.update(); status.textContent=`Round ${i+1}: ${(res.confidence*100).toFixed(0)}% (Blocked: ${res.blocked})`; i++; }, 400); } catch(e){status.textContent="❌ Failed";} }
-  document.getElementById("btA1").onclick = () => runA("random", document.getElementById("aU1").value, chA1, document.getElementById("stA1"));
-  document.getElementById("btA2").onclick = () => runA("replay", document.getElementById("aU2").value, chA2, document.getElementById("stA2"));
+// -- State ----------------------------------------------------------------------
+let currentUser = null, sessionExpiry = null, timerInt = null, credData = null;
+const knownUsers = new Set(); // track who has logged in before (in this browser session)
+
+// -- File upload hint -----------------------------------------------------------
+function updateFileHint(){
+  const u = document.getElementById('lU').value.trim();
+  const hint = document.getElementById('file-hint');
+  const opt  = document.getElementById('file-optional');
+  if(u){
+    hint.style.display = 'block';
+    opt.textContent = knownUsers.has(u) ? '(required — upload your last credential file)' : '(optional — first login after registration)';
+    opt.style.color = knownUsers.has(u) ? 'var(--amber)' : 'var(--muted)';
+  } else {
+    hint.style.display = 'none';
+  }
+}
+
+function onFileSelected(){
+  const f = document.getElementById('lT').files[0];
+  const st = document.getElementById('file-status');
+  if(f){ st.textContent = '📄 Loaded: '+f.name; st.style.color='var(--green)'; }
+  else { st.textContent=''; }
+}
+
+// -- Tab navigation -------------------------------------------------------------
+function showTab(t){
+  ['dash','auth','vpn','attacks','audit','arch','bench','stats','hndl'].forEach(id=>{
+    document.getElementById('tab-'+id).classList.toggle('hidden', id!==t);
+  });
+  document.querySelectorAll('.ni').forEach((n,i)=>{
+    n.classList.toggle('active', ['dash','auth','vpn','attacks','audit','arch','bench','stats','hndl'][i]===t);
+  });
+  if(t==='audit') loadAudit();
+  if(t==='dash'){refM();loadPeers();}
+}
+
+// -- Charts ---------------------------------------------------------------------
+const ctxM = document.getElementById('cM').getContext('2d');
+const chM = new Chart(ctxM,{type:'line',data:{labels:[],datasets:[{label:'Confidence',data:[],borderColor:'#00d4ff',backgroundColor:'rgba(0,212,255,.06)',fill:true,tension:.4,pointRadius:3,pointBackgroundColor:'#00d4ff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{display:false},y:{min:0,max:1,grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#64748b',callback:v=>(v*100)+'%'}}}}});
+
+function mkBar(id){return new Chart(document.getElementById(id).getContext('2d'),{type:'bar',data:{labels:[],datasets:[{data:[],backgroundColor:ctx=>ctx.raw>=0.85?'rgba(16,185,129,.6)':'rgba(239,68,68,.6)',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{min:0,max:1,grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#64748b'}},x:{grid:{display:false},ticks:{color:'#64748b'}}}}})}
+const chA1=mkBar('cA1'), chA2=mkBar('cA2');
+
+// -- Metrics --------------------------------------------------------------------
+async function refM(){
+  try{
+    const d=await(await fetch('/auth/metrics')).json();
+    document.getElementById('m1').textContent=(d.auth_success_rate*100).toFixed(0)+'%';
+    document.getElementById('m2').textContent=d.attack_blocked||0;
+    document.getElementById('m3').textContent=(d.average_confidence||0).toFixed(2);
+    if(d.confidence_history&&d.confidence_history.length){
+      chM.data.labels=d.confidence_history.map((_,i)=>'#'+(i+1));
+      chM.data.datasets[0].data=d.confidence_history;
+      chM.update();
+    }
+  }catch(e){}
+}
+refM();
+
+// -- Register -------------------------------------------------------------------
+async function doRegister(){
+  const u=document.getElementById('rU').value,p=document.getElementById('rP').value;
+  if(!u||!p)return;
+  const el=document.getElementById('resR');
+  el.textContent='Contacting PQC bridge...';el.className='result';
+  try{
+    const r=await fetch('/auth/signup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:u,password:p})});
+    const d=await r.json();
+    if(r.ok){
+      el.textContent=`? Registration successful!\n\nKyber-512 keypair generated.\nPublic Key (first 32 bytes): ${(d.pqc_public_key||'').substring(0,64)}...\n\nWiesner token generated and stored server-side.\nToken length: ${d.token_length||16} positions`;
+      el.className='result ok';
+      document.getElementById('lU').value=u;
+      document.getElementById('vU').value=u;
+      document.getElementById('aU1').value=u;
+      document.getElementById('aU2').value=u;
+      credData={name:u, pqc_public_key:d.pqc_public_key, kyber_meta:d.kyber_meta, token_display:d.token_display};
+      // Show Kyber info
+      if(d.kyber_meta){
+        const ki=document.getElementById('kyber-info');
+        ki.classList.remove('hidden');
+        const kd=document.getElementById('kyber-details');
+        kd.innerHTML=Object.entries(d.kyber_meta).map(([k,v])=>`<div class="kyber-row"><span class="kyber-key">${k.replace(/_/g,' ')}</span><span class="kyber-val">${v}</span></div>`).join('');
+      }
+      // Show token table
+      if(d.token_display&&d.token_display.length){
+        document.getElementById('token-section').classList.remove('hidden');
+        const tb=document.getElementById('token-body');
+        tb.innerHTML=d.token_display.map(t=>`<tr><td>${t.index+1}</td><td class="${t.basis==='+'?'basis-rect':'basis-diag'}">${t.basis==='+'?'? Rectilinear':'? Diagonal'}</td><td style="color:var(--muted);font-size:.65rem">${t.basis_name}</td><td class="${t.bit?'bit-1':'bit-0'}">${t.bit}</td></tr>`).join('');
+      }
+    }else{
+      el.textContent='? '+( d.message||d.error);el.className='result err';
+    }
+  }catch(e){el.textContent='? Bridge offline: '+e.message;el.className='result err';}
+}
+
+// -- Login ----------------------------------------------------------------------
+async function doLogin(){
+  const u=document.getElementById('lU').value, p=document.getElementById('lP').value;
+  const fileInput = document.getElementById('lT');
+  if(!u||!p)return;
+  
+  let quantumToken = null;
+  if (fileInput.files.length > 0) {
+    try {
+      const text = await fileInput.files[0].text();
+      quantumToken = JSON.parse(text);
+    } catch (e) {
+      alert("Invalid JSON in token file. Please upload the .json file you downloaded.");
+      return;
+    }
+  }
+
+  const el=document.getElementById('resL');
+  el.textContent='Initiating quantum authentication...';el.className='result';
+  document.getElementById('auth-layers').classList.remove('hidden');
+  ['fl1','fl2','fl3'].forEach(id=>document.getElementById(id).className='flow pending');
+  await delay(400);
+  document.getElementById('fl1').className='flow active';
+  el.textContent='[Layer 1] Verifying Wiesner QKD token...';
+  await delay(800);
+  try{
+    const body = { name: u, password: p };
+    if (quantumToken) body.quantum_token_upload = quantumToken;
+    const r=await fetch('/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await r.json();
+    if(r.ok){
+      document.getElementById('fl1').className='flow active';
+      await delay(400);
+      document.getElementById('fl2').className='flow active';
+      el.textContent=`[Layer 2] Kyber-512 KEM in progress...\nConf: ${(d.confidence*100).toFixed(1)}%`;
+      await delay(600);
+      document.getElementById('fl3').className='flow active';
+      el.textContent=`[Layer 3] WireGuard peer added ? ${d.vpn_peer_ip||'N/A'}`;
+      await delay(400);
+      el.textContent=`? AUTHENTICATED\n\nLayers Passed: ${d.layers_passed}/2\nConfidence: ${(d.confidence*100).toFixed(1)}%\nAlgorithm: ${d.kyber_algorithm||'Kyber-512'}\nStandard: ${d.kyber_standard||'FIPS 203'}\nSecurity: ${d.security_bits||128}-bit quantum\nVPN IP: ${d.vpn_peer_ip||'Pending'}\nSession: ${d.session_expires_at?new Date(d.session_expires_at).toLocaleTimeString():'1h'}`;
+      el.className='result ok';
+      currentUser=u;
+      knownUsers.add(u);
+      sessionExpiry=d.session_expires_at?new Date(d.session_expires_at):new Date(Date.now()+3600000);
+      startTimer();
+      // Show session section
+      document.getElementById('session-section').classList.remove('hidden');
+      const sd=document.getElementById('session-details');
+      sd.innerHTML=`<div class="kyber-row"><span class="kyber-key">User</span><span class="kyber-val">${u}</span></div><div class="kyber-row"><span class="kyber-key">Session Key (prefix)</span><span class="kyber-val">${(d.session_key||'').substring(0,20)}...</span></div><div class="kyber-row"><span class="kyber-key">VPN Peer IP</span><span class="kyber-val">${d.vpn_peer_ip||'N/A'}</span></div><div class="kyber-row"><span class="kyber-key">Algorithm</span><span class="kyber-val">${d.kyber_algorithm||'Kyber-512'}</span></div>`;
+      // Update credData with rotated token + auto-download new credential file
+      if(d.next_token_display){
+        credData = {
+          name: u,
+          generated_at: new Date().toISOString(),
+          session_key_prefix: (d.session_key||'').substring(0,16),
+          kyber_algorithm: d.kyber_algorithm||'Kyber-512',
+          token_display: d.next_token_display
+        };
+        const blob=new Blob([JSON.stringify(credData,null,2)],{type:'application/json'});
+        const a=document.createElement('a');
+        a.href=URL.createObjectURL(blob);
+        a.download=u+'-quantum-credential.json';
+        a.click();
+        document.getElementById('token-section').classList.remove('hidden');
+        const tb=document.getElementById('token-body');
+        tb.innerHTML=d.next_token_display.map(t=>`<tr><td>${t.index+1}</td><td class="${t.basis==='+'?'basis-rect':'basis-diag'}">${t.basis==='+'?'⊕ Rectilinear':'⊗ Diagonal'}</td><td style="color:var(--muted);font-size:.65rem">${t.basis_name}</td><td class="${t.bit?'bit-1':'bit-0'}">${t.bit}</td></tr>`).join('');
+      }
+      document.getElementById('lT').value='';
+      document.getElementById('file-status').textContent='✅ Credential consumed. New file auto-downloaded above.';
+      document.getElementById('file-status').style.color='var(--green)';
+      updateFileHint();
+      if(d.confidence) chM.data.datasets[0].data.push(d.confidence),chM.data.labels.push('#'+chM.data.labels.length),chM.update();
+      refM(); loadPeers();
+    }else{
+      document.getElementById('fl1').className='flow blocked';
+      el.textContent=`? Auth denied\n\n${d.message||d.error}\nConfidence: ${((d.confidence||0)*100).toFixed(1)}%\nLayers: ${d.layers_passed||0}/2`;
+      el.className='result err';
+    }
+  }catch(e){el.textContent='? Server error: '+e.message;el.className='result err';}
+}
+
+// -- Logout ---------------------------------------------------------------------
+async function doLogout(){
+  if(!currentUser)return;
+  try{
+    await fetch('/auth/logout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:currentUser})});
+    clearInterval(timerInt);
+    document.getElementById('session-section').classList.add('hidden');
+    document.getElementById('auth-layers').classList.add('hidden');
+    document.getElementById('resL').textContent='Logged out — WireGuard peer removed.';
+    document.getElementById('resL').className='result warn';
+    currentUser=null; sessionExpiry=null;
+    refM(); loadPeers();
+  }catch(e){}
+}
+
+// -- VPN Config -----------------------------------------------------------------
+async function getVPN(){
+  const u=document.getElementById('vU').value;
+  if(!u)return;
+  const el=document.getElementById('resV');
+  try{
+    const r=await fetch(`/auth/vpn-config?name=${u}`);
+    const t=await r.text();
+    el.textContent=t;
+    el.className=r.ok?'result ok':'result err';
+    if(r.ok){
+      const blob=new Blob([t],{type:'text/plain'});
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);
+      a.download=u+'-pqc-vpn.conf';
+      a.click();
+    }
+  }catch(e){el.textContent='? Error: '+e.message;el.className='result err';}
+}
+async function breachSim(){
+  const el=document.getElementById('resV');
+  el.textContent='Attempting unauthorized access...';
+  try{
+    const r=await fetch('/auth/vpn-config?name=ATTACKER_9000');
+    const d=await r.json();
+    el.textContent='? ACCESS DENIED\n\n'+JSON.stringify(d,null,2)+'\n\nPQC gateway blocked unauthorized access.';
+    el.className='result err';
+  }catch(e){}
+}
+
+// -- Attack Simulation ----------------------------------------------------------
+async function runReplay(){
+  const u=document.getElementById('aU2').value;
+  if(!u)return;
+  const st=document.getElementById('stA2');
+  document.getElementById('replay-flow').innerHTML='';
+  chA2.data.labels=[];chA2.data.datasets[0].data=[];chA2.update();
+  st.textContent='Simulating replay attack...';
+  try{
+    const r=await fetch('/auth/attack-visual',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:u,attack_type:'replay',rounds:6})});
+    const d=await r.json();
+    let i=0;
+    const iv=setInterval(async()=>{
+      if(i>=d.results.length){clearInterval(iv);st.textContent=`? Complete — ${d.blocked}/${d.total_rounds} blocked (${(d.block_rate*100).toFixed(0)}% block rate)`;return;}
+      const res=d.results[i];
+      chA2.data.labels.push('R'+(i+1));chA2.data.datasets[0].data.push(res.confidence);chA2.update();
+      if(res.steps){
+        const fc=document.getElementById('replay-flow');
+        fc.innerHTML='';
+        res.steps.forEach(s=>{
+          const cls=s.status==='blocked'?'flow blocked':s.status==='consumed'||s.status==='captured'?'flow warn':'flow active';
+          fc.innerHTML+=`<div class="${cls}"><div class="flow-icon">${s.status==='blocked'?'??':s.status==='captured'?'??':s.status==='consumed'?'??':'?'}</div><div>${s.label} <span class="${s.status==='blocked'?'tag-err':'tag-ok'}">${s.status.toUpperCase()}</span></div></div>`;
+        });
+      }
+      st.textContent=`Round ${i+1}: Confidence ${(res.confidence*100).toFixed(0)}% — ${res.blocked?'BLOCKED ?':'Passed ?'}`;
+      i++;
+    },600);
+  }catch(e){st.textContent='? Failed: '+e.message;}
+}
+
+async function runRandom(){
+  const u=document.getElementById('aU1').value;
+  if(!u)return;
+  const st=document.getElementById('stA1');
+  chA1.data.labels=[];chA1.data.datasets[0].data=[];chA1.update();
+  st.textContent='Simulating random impersonation...';
+  try{
+    const r=await fetch('/auth/attack-visual',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:u,attack_type:'random',rounds:8})});
+    const d=await r.json();
+    let i=0;
+    const iv=setInterval(()=>{
+      if(i>=d.results.length){clearInterval(iv);st.textContent=`? Complete — ${d.blocked}/${d.total_rounds} blocked`;return;}
+      const res=d.results[i];
+      chA1.data.labels.push('R'+(i+1));chA1.data.datasets[0].data.push(res.confidence);chA1.update();
+      st.textContent=`Round ${i+1}: ${res.blocked?'BLOCKED ? (conf='+( res.confidence*100).toFixed(0)+'%)':'Passed ?'}`;
+      i++;
+    },450);
+  }catch(e){st.textContent='? Failed: '+e.message;}
+}
+
+// -- Audit Log ------------------------------------------------------------------
+async function loadAudit(){
+  try{
+    const d=await(await fetch('/auth/audit-log')).json();
+    const el=document.getElementById('audit-list');
+    if(!d.events||!d.events.length){el.innerHTML='<div style="color:var(--muted);text-align:center;padding:30px">No events yet</div>';return;}
+    el.innerHTML=d.events.map(e=>{
+      const cls=e.event.includes('success')||e.event.includes('register')?'audit-row success':e.event.includes('fail')||e.event.includes('attack')?'audit-row failed':e.event.includes('remove')||e.event.includes('logout')?'audit-row warn':'audit-row info';
+      const icon=e.event.includes('success')?'?':e.event.includes('fail')?'?':e.event.includes('register')?'??':e.event.includes('peer')?'??':'?';
+      const t=new Date(e.timestamp*1000).toLocaleTimeString();
+      return `<div class="${cls}"><span style="font-size:1rem">${icon}</span><span style="color:var(--cyan);font-family:'JetBrains Mono',monospace;font-size:.72rem">${t}</span><span style="font-weight:600;font-size:.78rem">${e.event.replace(/_/g,' ').toUpperCase()}</span>${e.user_id?`<span style="color:var(--muted);font-size:.72rem">user: ${e.user_id}</span>`:''}</div>`;
+    }).join('');
+  }catch(e){document.getElementById('audit-list').innerHTML='<div style="color:var(--red);text-align:center;padding:20px">Bridge offline</div>';}
+}
+
+// -- Peers ----------------------------------------------------------------------
+async function loadPeers(){
+  try{
+    const d=await(await fetch('/auth/vpn-peers')).json();
+    const el=document.getElementById('peers-list');
+    if(!d.peers||!d.peers.length){el.innerHTML='<div style="color:var(--muted);font-size:.8rem;text-align:center;padding:20px">No active peers — authenticate to create a peer</div>';return;}
+    el.innerHTML=d.peers.map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.15);border-radius:8px;margin:4px 0;font-size:.78rem"><span style="color:var(--green);font-family:'JetBrains Mono',monospace">${p.ip||'10.0.0.x'}</span><span style="color:var(--muted)">${p.user_id||'anonymous'}</span><span style="color:var(--cyan)">${p.ttl_remaining_s?Math.floor(p.ttl_remaining_s/60)+'m remaining':'active'}</span></div>`).join('');
+  }catch(e){}
+}
+
+// -- Session Timer --------------------------------------------------------------
+function startTimer(){
+  clearInterval(timerInt);
+  timerInt=setInterval(()=>{
+    if(!sessionExpiry){clearInterval(timerInt);return;}
+    const rem=Math.max(0,Math.floor((sessionExpiry-Date.now())/1000));
+    const h=Math.floor(rem/3600),m=Math.floor((rem%3600)/60),s=rem%60;
+    document.getElementById('sessionTimer').textContent=`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    if(rem===0){clearInterval(timerInt);document.getElementById('resL').textContent='? Session expired — please login again';document.getElementById('resL').className='result warn';}
+  },1000);
+}
+
+// -- Download Credential -------------------------------------------------------
+function downloadCred(){
+  if(!credData){ alert('No credential data available yet. Register or login first.'); return; }
+  const blob=new Blob([JSON.stringify(credData,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=(credData.name||'user')+'-quantum-credential.json';
+  a.click();
+}
+
+// -- Utility --------------------------------------------------------------------
+function delay(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+
+// ── Benchmark ───────────────────────────────────────────────────────────────
+let chBench=null, chSizes=null, chDist=null, chROC=null, chNoise=null;
+function delay(ms){ return new Promise(r=>setTimeout(r,ms)); } // duplicate guard handled by hoisting
+async function runBench(){
+  const st=document.getElementById('bench-status');
+  st.textContent='Running Kyber-512 + Dilithium-2 benchmark... (may take 5-10s)';
+  st.style.color='var(--cyan)';
+  try{
+    const d=await(await fetch('/auth/benchmark?runs=20')).json();
+    st.textContent='Benchmark complete!';
+    st.style.color='var(--green)';
+    // Latency chart
+    const labels=['Kyber KeyGen','Kyber Encaps','Kyber Decaps','Dilithium KeyGen','Dilithium Sign','Dilithium Verify','RSA KeyGen*','RSA Sign*','ECDH Derive*'];
+    const vals=[
+      d.kyber_512.keygen.mean_ms, d.kyber_512.encapsulate.mean_ms, d.kyber_512.decapsulate.mean_ms,
+      d.dilithium_2.keygen.mean_ms, d.dilithium_2.sign.mean_ms, d.dilithium_2.verify.mean_ms,
+      d.rsa_2048_simulated.keygen.mean_ms, d.rsa_2048_simulated.sign.mean_ms, d.ecdh_p256_simulated.derive.mean_ms
+    ];
+    const colors=['rgba(0,212,255,.7)','rgba(0,212,255,.7)','rgba(0,212,255,.7)','rgba(124,58,237,.7)','rgba(124,58,237,.7)','rgba(124,58,237,.7)','rgba(239,68,68,.5)','rgba(239,68,68,.5)','rgba(239,68,68,.5)'];
+    const ctx=document.getElementById('cBench').getContext('2d');
+    if(chBench)chBench.destroy();
+    chBench=new Chart(ctx,{type:'bar',data:{labels,datasets:[{data:vals,backgroundColor:colors,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw.toFixed(3)+' ms'}}},scales:{y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#64748b',callback:v=>v.toFixed(1)+'ms'}},x:{ticks:{color:'#64748b',font:{size:9}},grid:{display:false}}}}});
+    // Sizes chart
+    const ks=d.key_sizes;
+    const sCtx=document.getElementById('cSizes').getContext('2d');
+    if(chSizes)chSizes.destroy();
+    chSizes=new Chart(sCtx,{type:'bar',data:{labels:['Kyber-512 PK','Kyber-512 SK','Kyber CT','Dilithium-2 PK','Dilithium-2 SK','Dilithium Sig','RSA-2048 PK','RSA-2048 SK','RSA Sig'],datasets:[{data:[ks.kyber_512.pk,ks.kyber_512.sk,ks.kyber_512.ct,ks.dilithium_2.pk,ks.dilithium_2.sk,ks.dilithium_2.sig,ks.rsa_2048.pk,ks.rsa_2048.sk,ks.rsa_2048.sig],backgroundColor:['rgba(0,212,255,.6)','rgba(0,212,255,.6)','rgba(0,212,255,.6)','rgba(124,58,237,.6)','rgba(124,58,237,.6)','rgba(124,58,237,.6)','rgba(239,68,68,.5)','rgba(239,68,68,.5)','rgba(239,68,68,.5)'],borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#64748b',callback:v=>v+' B'}},x:{ticks:{color:'#64748b',font:{size:9}},grid:{display:false}}}}});
+    // Table
+    const rows=[
+      {op:'Kyber-512 KeyGen',  pqc:d.kyber_512.keygen.mean_ms,     cls:d.rsa_2048_simulated.keygen.mean_ms, qsafe:true},
+      {op:'Kyber-512 Encaps',  pqc:d.kyber_512.encapsulate.mean_ms, cls:'N/A (ECDH)', qsafe:true},
+      {op:'Kyber-512 Decaps',  pqc:d.kyber_512.decapsulate.mean_ms, cls:'N/A (ECDH)', qsafe:true},
+      {op:'Dilithium-2 KeyGen',pqc:d.dilithium_2.keygen.mean_ms,   cls:d.rsa_2048_simulated.keygen.mean_ms, qsafe:true},
+      {op:'Dilithium-2 Sign',  pqc:d.dilithium_2.sign.mean_ms,     cls:d.rsa_2048_simulated.sign.mean_ms, qsafe:true},
+      {op:'Dilithium-2 Verify',pqc:d.dilithium_2.verify.mean_ms,   cls:d.rsa_2048_simulated.verify.mean_ms, qsafe:true},
+    ];
+    document.getElementById('bench-table').innerHTML='<table class="token-table"><thead><tr><th>Operation</th><th>PQC (ms)</th><th>Classical (ms)*</th><th>Quantum Safe</th></tr></thead><tbody>'+
+      rows.map(r=>`<tr><td style="text-align:left">${r.op}</td><td>${typeof r.pqc==='number'?r.pqc.toFixed(3):r.pqc}</td><td>${typeof r.cls==='number'?r.cls.toFixed(3):r.cls}</td><td>${r.qsafe?'<span class=\"tag-ok\">YES</span>':'<span class=\"tag-err\">NO</span>'}</td></tr>`).join('')+
+      '</tbody></table><div style="font-size:.68rem;color:var(--muted);margin-top:8px">*Classical timings simulated via SHA-256 loops scaled to published OpenSSL benchmark ratios</div>';
+  }catch(e){st.textContent='Bridge offline: '+e.message;st.style.color='var(--red)';}
+}
+
+// ── Stats/ROC ───────────────────────────────────────────────────────────────
+async function loadStats(){
+  try{
+    const d=await(await fetch('/auth/security-analysis?samples=300')).json();
+    // Distribution means chart
+    const dCtx=document.getElementById('cDist').getContext('2d');
+    if(chDist)chDist.destroy();
+    const scens=['benign','noisy_05pct','noisy_15pct','random','partial_50','partial_75'];
+    const labels=['Benign','Noisy 5%','Noisy 15%','Random','Partial 50%','Partial 75%'];
+    const means=scens.map(s=>d.distributions[s].stats.mean);
+    const stds=scens.map(s=>d.distributions[s].stats.std);
+    chDist=new Chart(dCtx,{type:'bar',data:{labels,datasets:[{label:'Mean Confidence',data:means,backgroundColor:means.map(v=>v>=0.85?'rgba(16,185,129,.6)':v>=0.6?'rgba(245,158,11,.6)':'rgba(239,68,68,.6)'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},annotation:{annotations:{line1:{type:'line',yMin:0.85,yMax:0.85,borderColor:'rgba(0,212,255,.7)',borderWidth:1.5,borderDash:[4,4]}}}},scales:{y:{min:0,max:1,grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#64748b',callback:v=>(v*100).toFixed(0)+'%'}},x:{ticks:{color:'#64748b',font:{size:9}},grid:{display:false}}}}});
+    // ROC chart
+    const rCtx=document.getElementById('cROC').getContext('2d');
+    if(chROC)chROC.destroy();
+    const roc=d.roc_benign_vs_random;
+    chROC=new Chart(rCtx,{type:'line',data:{labels:roc.fpr,datasets:[{label:'ROC (Benign vs Random) AUC='+roc.auc,data:roc.tpr,borderColor:'#00d4ff',backgroundColor:'rgba(0,212,255,.05)',fill:true,tension:.3,pointRadius:0},{label:'Random Classifier',data:roc.fpr,borderColor:'rgba(255,255,255,.2)',borderDash:[4,4],pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#64748b',font:{size:9}}}},scales:{x:{title:{display:true,text:'FPR',color:'#64748b'},ticks:{color:'#64748b',maxTicksLimit:6},grid:{color:'rgba(255,255,255,.04)'}},y:{title:{display:true,text:'TPR',color:'#64748b'},ticks:{color:'#64748b'},grid:{color:'rgba(255,255,255,.04)'}}}}});
+    // Noise tolerance chart
+    const nCtx=document.getElementById('cNoise').getContext('2d');
+    if(chNoise)chNoise.destroy();
+    const nt=d.noise_tolerance_curve;
+    chNoise=new Chart(nCtx,{type:'line',data:{labels:nt.map(r=>(r.noise_level*100).toFixed(0)+'%'),datasets:[{label:'False Negative Rate',data:nt.map(r=>r.fnr),borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,.06)',fill:true,tension:.4,pointRadius:3},{label:'Mean Confidence',data:nt.map(r=>r.mean_conf),borderColor:'#00d4ff',tension:.4,pointRadius:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#64748b',font:{size:9}}}},scales:{x:{title:{display:true,text:'Noise Level',color:'#64748b'},ticks:{color:'#64748b'},grid:{color:'rgba(255,255,255,.04)'}},y:{min:0,max:1,ticks:{color:'#64748b'},grid:{color:'rgba(255,255,255,.04)'}}}}});
+    // Accept rate table
+    const m=d.metrics_at_threshold_85;
+    document.getElementById('stats-table').innerHTML='<table class="token-table"><thead><tr><th>Scenario</th><th>Accept Rate</th><th>Accepted</th><th>Rejected</th><th>Decision</th></tr></thead><tbody>'+
+      Object.entries(m).map(([k,v])=>`<tr><td style="text-align:left">${k.replace(/_/g,' ')}</td><td><strong>${(v.accept_rate*100).toFixed(1)}%</strong></td><td>${v.accepted}</td><td>${v.rejected}</td><td>${v.accept_rate>=0.7?'<span class=\"tag-ok\">ACCEPT</span>':'<span class=\"tag-err\">BLOCK</span>'}</td></tr>`).join('')+
+      '</tbody></table>';
+  }catch(e){console.error(e);}
+}
+
+// ── HNDL ───────────────────────────────────────────────────────────────────
+async function loadHNDL(){
+  const cap=document.getElementById('hndl-capture');
+  const def=document.getElementById('hndl-defenses');
+  cap.textContent='Simulating HNDL scenario...';
+  try{
+    const d=await(await fetch('/auth/hndl-demo')).json();
+    cap.textContent=JSON.stringify(d.captured_today,null,2);
+    cap.className='result warn';
+    def.innerHTML=d.maqraf_defenses.map(x=>`<div class="flow active" style="margin:4px 0"><div class="flow-icon" style="background:rgba(16,185,129,.1)">🛡</div><div><strong>${x.defense}</strong> <span class="tag-ok">${x.status}</span><br><span style="font-size:.72rem;color:var(--muted)">${x.detail}</span></div></div>`).join('');
+  }catch(e){cap.textContent='Bridge offline';cap.className='result err';}
+}
+
+
+
+// Auto-refresh metrics every 30s
+setInterval(refM,30000);
+setInterval(loadPeers,15000);
 </script>
-</body>
-</html>
+</body></html>
+
